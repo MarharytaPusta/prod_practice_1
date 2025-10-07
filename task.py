@@ -71,6 +71,7 @@ money24.combine(driver, "https://money24.com.ua/", list_elem_lv_elem_lp)
 
 
 
+
 #
 # driver.get("https://money24.com.ua/")
 # elem = driver.find_element(By.CLASS_NAME, "map__courses-list")
