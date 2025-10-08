@@ -33,9 +33,6 @@ class Valute_to_price():
         elem = driver.find_element(By.CSS_SELECTOR, dict_elems["general"])
         self.list_prices_to_buy = elem.find_elements(By.CSS_SELECTOR, dict_elems["buy_selector"])
         self.list_prices_to_buy = [val.text for val in self.list_prices_to_buy]
-        print("----------------------")
-        print(self.list_prices_to_buy)
-        print("----------------------")
 
 
     def print_values(self):
@@ -51,74 +48,38 @@ class Valute_to_price():
 
 
 driver = webdriver.Chrome()
-# driver.implicitly_wait(5)
-money24 = Valute_to_price()
-dict_elems = {"general" : ".map__courses-list", "valute_selector" :  ".currency-node-wrapper span", "sell_selector" : "li div:first-child", "buy_selector" : "li div:last-child"}
-money24.combine(driver, "https://money24.com.ua/", dict_elems)
+driver.implicitly_wait(3)
+# money24 = Valute_to_price()
+# dict_elems = {"general" : ".map__courses-list", "valute_selector" :  ".currency-node-wrapper span", "sell_selector" : "li div:first-child", "buy_selector" : "li div:last-child"}
+# money24.combine(driver, "https://money24.com.ua/", dict_elems)
 
+# national_bank = Valute_to_price()
+# dict_elems = {"general" : "#exchangeRates tbody", "valute_selector" :  "tr td:nth-child(2)", "sell_selector" : "tr td:nth-child(5)", "buy_selector" : "tr td:nth-child(5)"}
+# national_bank.combine(driver, "https://bank.gov.ua/ua/markets/exchangerates", dict_elems)
 
+privat_bank = Valute_to_price()
+dict_elems = {"general" : ".content_xl80mCnkD4 div:last-child", "valute_selector" :  ".currency_b_C9i_wbMZ div.content_w73Ioj4XNI div:first-child", "sell_selector" : ".rate_kx9iSqCXBH:nth-child(4)", "buy_selector" : ".rate_kx9iSqCXBH:nth-child(2)"}
+privat_bank.combine(driver, "https://next.privat24.ua/exchange-rates", dict_elems)
 
+# driver.get("https://next.privat24.ua/exchange-rates")
+# elem = driver.find_element(By.XPATH, "/html/body/div[1]/div[2]/section/div/div[2]/div[1]/div/div[2]/div[3]/div[2]")
+# elem = driver.find_element(By.CSS_SELECTOR, ".content_xl80mCnkD4 div:last-child") #general
+# elems = elem.find_elements(By.CSS_SELECTOR, ".rate_kx9iSqCXBH:nth-child(2)") #BUY
+# elems = elem.find_elements(By.CSS_SELECTOR, ".rate_kx9iSqCXBH:nth-child(4)") #SALE
+# elems = elem.find_elements(By.CSS_SELECTOR, ".currency_b_C9i_wbMZ div.content_w73Ioj4XNI div:first-child" ) #Currency
+#
+# for el in elems:
+#     print("\n\n")
+#     print(el.get_attribute("outerHTML"))
+# print(elems)
+# lst = [l.text for l in elems]
+# print(lst)
+# for el in elems:
+#     print(el.text)
+# elem = elem.find_element(By.CSS_SELECTOR, "")
+# print(elem.get_attribute("innerHTML"))
+# list_valutes = elem.find_elements(By.CSS_SELECTOR, "#plerdy-tracking-id")
+# list_valutes = [val.text for val in list_valutes]
+# for i in range(len(list_valutes)):
+#     print(f"{list_valutes[i]}")
 
-
-
-#
-# driver.get("https://money24.com.ua/")
-# elem = driver.find_element(By.CLASS_NAME, "map__courses-list")
-# elems = elem.find_elements(By.CSS_SELECTOR, ".map__courses-list-li div")
-
-# new_elems = []
-# for i in range(0, len(elems)):
-#     if i % 3 == 0:
-#         new_elems.append(elems[i])
-#         new_elems.append(elems[i+2])
-# for c in new_elems:
-#     print(c.text)
-#
-# driver.close()
-
-# print("----------------------------------------------------------------------------------------------------------------------------------\n"
-#       "----------------------------------------------------------------------------------------------------------------------------------\n"
-#       "----------------------------------------------------------------------------------------------------------------------------------\n"
-#       "----------------------------------------------------------------------------------------------------------------------------------\n")
-#
-#
-#
-#
-# """
-# driver = webdriver.Chrome()
-# driver.get("https://bank.gov.ua/ua/markets/exchangerates")
-#
-#
-# # test1Element = driver.find_element(By.TAG_NAME, "table")
-# # print(test1Element)
-# # elems = test1Element.find_elements(By.CSS_SELECTOR, "td a")
-# #
-# # for el in elems:
-# #     print(el.text)
-#
-# # elem = driver.find_elements(By.CLASS_NAME, "value-name")
-# # elems = list()
-# # for el in elem:
-# #     elems = list(set(el.find_elements(By.CSS_SELECTOR, "a")).union(elems))
-# # for c in elems:
-# #     print(c.text)
-# # driver.close()
-#
-#
-# driver.get("https://money24.com.ua/")
-# elem = driver.find_element(By.CLASS_NAME, "map__courses-list")
-# elems = elem.find_elements(By.CSS_SELECTOR, ".currency-node-wrapper span")
-# for c in elems:
-#     print(c.text)
-# driver.close()
-#
-# # elem = driver.find_element(By.NAME, "q")
-# # elem.send_keys("pip")
-# # elem.send_keys(Keys.RETURN)
-# # elem = driver.find_element(By.CLASS_NAME, "list-recent-events")
-# # childs = elem.find_elements(By.CSS_SELECTOR, "li a")
-# #
-# # for c in childs:
-# #     print(c.text)
-# # driver.close()
-# """
