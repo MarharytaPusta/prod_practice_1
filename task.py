@@ -44,7 +44,7 @@ class Valute_to_price():
 national_bank = Valute_to_price()
 dict_elems1 = {"general" : ".module-exchange__list", "valute_selector" :  ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)", "sell_selector" : ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)", "buy_selector" : ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)"}
 national_bank.combine("https://kredobank.com.ua/info/kursy-valyut/commercial", dict_elems1)
-#
+
 # print("------------------------")
 #
 # money24 = Valute_to_price()
