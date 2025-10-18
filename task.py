@@ -1,7 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
@@ -81,7 +81,9 @@ class Valute():
 
 
 
-
+def replace_comas(some_list):
+    for i in range(len(some_list)):
+        some_list[i] = some_list[i].replace(',', '.')
 
 driver = webdriver.Chrome()
 driver.get("https://privatbank.ua/obmin-valiut")
@@ -94,39 +96,62 @@ elem = driver.find_element(By.XPATH, "/html/body/div[5]/article[2]/div[3]/articl
 driver.execute_script("arguments[0].click()", elem)
 elem = driver.find_element(By.XPATH, "//button[@plerdy-tracking-id='16681147801']")
 driver.execute_script("arguments[0].click()", elem)
-# elem = driver.find_element(By.CSS_SELECTOR, "div.download-more")
-# elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-# print(elem)
-# driver.execute_script("arguments[0].click()", elem)
-# elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-# print(elem)
-# elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-# driver.execute_script("arguments[0].click()", elem)
-# elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-# driver.execute_script("arguments[0].click()", elem)
-# print(elem)
-elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-time.sleep(2)
-driver.execute_script("arguments[0].click()", elem)
-time.sleep(2)
-driver.execute_script("arguments[0].click()", elem)
-time.sleep(2)
-driver.execute_script("arguments[0].click()", elem)
-time.sleep(2)
 
+show_more = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
+time.sleep(2)
+elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
+dates = list()
+new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
+i = 0
+while True:
+    try:
+        print("halepa")
+        button = WebDriverWait(driver, 2).until(
+            EC.element_to_be_clickable(show_more)
+        )
+        driver.execute_script("arguments[0].click()", button)
+        #     time.sleep(2)
+    except TimeoutException:
+        # The button was not found within the timeout, indicating it's gone
+        print("Button no longer found or not clickable within the timeout.")
+        break
+    except NoSuchElementException:
+        # The button is not present on the page
+        print("Button not found on the page.")
+        break
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        break
+# while len(new_dates) > len(dates):
+#     driver.execute_script("arguments[0].click()", show_more)
+#     time.sleep(2)
+#     dates = new_dates
+#     i += 1
+#     print(i)
+#     new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
+    #new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
 name_of_valute = "USD"
 
-elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
+# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
 list_buy = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(4)")
 list_buy = [val.text for val in list_buy]
+replace_comas(list_buy)
 
-elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
+# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
 list_sell = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(5)")
 list_sell = [val.text for val in list_sell]
+replace_comas(list_sell)
 
-elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
+# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
 list_date = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(1)")
 list_date = [val.text for val in list_date]
+replace_comas(list_date)
+
+with open ("privat.csv", 'w') as bank:
+    bank.write("date,buy,sell\n")
+    for date,buy,sell in zip(list_date, list_buy, list_sell):
+        bank.write(f"{date},{buy},{sell}\n")
+
 
 print(list_buy)
 print("--------------------------------------"*10)
