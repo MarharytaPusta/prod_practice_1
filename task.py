@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -6,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 import time
+from matplotlib import pyplot
 
 
 
@@ -42,7 +45,7 @@ import time
 # dict_elems4 = {"general" : ".scrolledTable tbody", "valute_selector" :  "tr:not(:first-child) td:first-child", "sell_selector" : "tr:not(:first-child) td:nth-child(2)", "buy_selector" : "tr:not(:first-child) td:nth-child(3)"}
 # globus_bank.combine("https://globusbank.com.ua/ua/kursy-valiut.html", dict_elems4)
 
-
+driver = webdriver.Chrome()
 
 class Dovnloaded_valutes():
     def __init__(self, driver_link, name_of_valute, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
@@ -52,13 +55,13 @@ class Dovnloaded_valutes():
         self.list_prices_to_buy = list_prices_to_buy
         self.list_dates = list_dates
 
-    def all_clicks(self, driver, list_to_click = None):
+    def all_clicks(self, list_to_click = None):
         if (list_to_click != None):
             for link in list_to_click:
                 elem = driver.find_element(By.XPATH, link)
                 driver.execute_script("arguments[0].click()", elem)
 
-    def download_more(self, show_more_link, driver):
+    def download_more(self, show_more_link):
         if (show_more_link != None):
             wait = WebDriverWait(driver, 10)
             show_more = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, show_more_link)))
@@ -82,7 +85,7 @@ class Dovnloaded_valutes():
         for i in range(len(some_list)):
             some_list[i] = some_list[i].replace(',', '.')
 
-    def create_list(self, link_dictionary, name_in_dict, driver):
+    def create_list(self, link_dictionary, name_in_dict):
         elem = driver.find_element(By.CSS_SELECTOR, link_dictionary["general"])
         some_list = elem.find_elements(By.CSS_SELECTOR, link_dictionary[name_in_dict])
         some_list = [val.text for val in some_list]
@@ -92,21 +95,31 @@ class Dovnloaded_valutes():
     def write_in_file(self, file_name):
         with open(file_name, 'w') as bank:
             bank.write("date,buy,sell\n")
-            for date, buy, sell in zip(self.list_dates, self.list_prices_to_sell, self.list_prices_to_buy):
+            for date, buy, sell in zip(self.list_dates, self.list_prices_to_buy, self.list_prices_to_sell):
                 bank.write(f"{date},{buy},{sell}\n")
 
+    def graphic(self):
+        time_list_dates = [datetime.strptime(date, "%d-%m-%Y") for date in self.list_dates]
+        gr_list_prices_to_sell = [float(price) for price in self.list_prices_to_sell]
+        gr_list_prices_to_buy = [float(price) for price in self.list_prices_to_buy]
+        pyplot.plot(time_list_dates, gr_list_prices_to_sell, label="Sell USD", color = "green")
+        pyplot.plot(time_list_dates, gr_list_prices_to_buy, label="Buy USD", color = "red")
+        pyplot.legend()
+        print(gr_list_prices_to_sell)
+        pyplot.show()
+
     def create(self, list_to_click, link_dictionary, file_name, show_more_link = None):
-        driver = webdriver.Chrome()
         driver.get(self.driver_link)
-        self.all_clicks(driver, list_to_click)
-        self.download_more(show_more_link, driver)
-        self.list_dates = self.create_list(link_dictionary, "link_date", driver)
-        self.list_prices_to_sell = self.create_list(link_dictionary, "link_sell", driver)
-        self.list_prices_to_buy = self.create_list(link_dictionary, "link_buy", driver)
+        self.all_clicks(list_to_click)
+        self.download_more(show_more_link)
+        self.list_dates = self.create_list(link_dictionary, "link_date")
+        self.list_prices_to_sell = self.create_list(link_dictionary, "link_sell")
+        self.list_prices_to_buy = self.create_list(link_dictionary, "link_buy")
         self.write_in_file(file_name)
-        driver.close()
+        self.graphic()
 
 
+# TODO class All_valutes, which will create a graphic
 
 
 
@@ -119,6 +132,17 @@ privat = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
 list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
 link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
 privat.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
+
+
+
+
+
+
+
+
+
+driver.close()
+
 
 ###############################################
 """
