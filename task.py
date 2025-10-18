@@ -7,32 +7,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 import time
 
-class Valute_to_price():
-    def __init__(self, list_valutes = None, list_prices_to_sell = None, list_prices_to_buy = None):
-        self.list_valutes = list_valutes
-        self.list_prices_to_sell = list_prices_to_sell
-        self.list_prices_to_buy = list_prices_to_buy
-
-    def creation_list(self, driver, dict_elems, for_selector):
-        elem = driver.find_element(By.CSS_SELECTOR, dict_elems["general"])
-        list_for_class = elem.find_elements(By.CSS_SELECTOR, dict_elems[for_selector])
-        list_for_class = [val.text for val in list_for_class]
-        return list_for_class
-
-    def print_values(self):
-        for i in range(len(self.list_valutes)):
-            print(f"{self.list_valutes[i]} : {self.list_prices_to_sell[i]} / {self.list_prices_to_buy[i]}")
-
-    def combine(self, link, dict_elems):
-        driver = webdriver.Chrome()
-        driver.implicitly_wait(2)
-        driver.get(link)
-        self.list_valutes = self.creation_list(driver, dict_elems, "valute_selector")
-        self.list_prices_to_sell = self.creation_list(driver, dict_elems, "sell_selector")
-        self.list_prices_to_buy = self.creation_list(driver, dict_elems, "buy_selector")
-        self.print_values()
-        driver.close()
-
 
 
 # Buy - гривні в долари. Я даю гривні, хочу отримати долари
@@ -70,24 +44,84 @@ class Valute_to_price():
 
 
 
-class Valute():
-    def __init__(self, name_of_valute, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
+class Dovnloaded_valutes():
+    def __init__(self, driver_link, name_of_valute, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
+        self.driver_link = driver_link
         self.name_of_valute = name_of_valute
         self.list_prices_to_sell = list_prices_to_sell
         self.list_prices_to_buy = list_prices_to_buy
         self.list_dates = list_dates
 
+    def all_clicks(self, driver, list_to_click = None):
+        if (list_to_click != None):
+            for link in list_to_click:
+                elem = driver.find_element(By.XPATH, link)
+                driver.execute_script("arguments[0].click()", elem)
+
+    def download_more(self, show_more_link, driver):
+        if (show_more_link != None):
+            wait = WebDriverWait(driver, 10)
+            show_more = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, show_more_link)))
+            time.sleep(2)
+            while True:
+                try:
+                    button = WebDriverWait(driver, 2).until(EC.element_to_be_clickable(show_more))
+                    driver.execute_script("arguments[0].click()", button)
+                    time.sleep(2)
+                except TimeoutException:
+                    print("Button no longer found or not clickable within the timeout")
+                    break
+                except NoSuchElementException:
+                    print("Button not found on the page")
+                    break
+                except Exception:
+                    print("An unexpected error occurred")
+                    break
+
+    def replace_comas(self, some_list):
+        for i in range(len(some_list)):
+            some_list[i] = some_list[i].replace(',', '.')
+
+    def create_list(self, link_dictionary, name_in_dict, driver):
+        elem = driver.find_element(By.CSS_SELECTOR, link_dictionary["general"])
+        some_list = elem.find_elements(By.CSS_SELECTOR, link_dictionary[name_in_dict])
+        some_list = [val.text for val in some_list]
+        self.replace_comas(some_list)
+        return some_list
+
+    def write_in_file(self, file_name):
+        with open(file_name, 'w') as bank:
+            bank.write("date,buy,sell\n")
+            for date, buy, sell in zip(self.list_dates, self.list_prices_to_sell, self.list_prices_to_buy):
+                bank.write(f"{date},{buy},{sell}\n")
+
+    def create(self, list_to_click, link_dictionary, file_name, show_more_link = None):
+        driver = webdriver.Chrome()
+        driver.get(self.driver_link)
+        self.all_clicks(driver, list_to_click)
+        self.download_more(show_more_link, driver)
+        self.list_dates = self.create_list(link_dictionary, "link_date", driver)
+        self.list_prices_to_sell = self.create_list(link_dictionary, "link_sell", driver)
+        self.list_prices_to_buy = self.create_list(link_dictionary, "link_buy", driver)
+        self.write_in_file(file_name)
+        driver.close()
 
 
 
 
-def replace_comas(some_list):
-    for i in range(len(some_list)):
-        some_list[i] = some_list[i].replace(',', '.')
 
-driver = webdriver.Chrome()
-driver.get("https://privatbank.ua/obmin-valiut")
 
+
+# driver = webdriver.Chrome()
+# driver.get("https://privatbank.ua/obmin-valiut")
+
+privat = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
+list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
+link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
+privat.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
+
+###############################################
+"""
 wait = WebDriverWait(driver, 10)
 
 elem = driver.find_element(By.XPATH, "//span[@plerdy-tracking-id='35644584901']")
@@ -99,13 +133,8 @@ driver.execute_script("arguments[0].click()", elem)
 
 show_more = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
 time.sleep(2)
-elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
-dates = list()
-new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
-i = 0
 while True:
     try:
-        print("halepa")
         button = WebDriverWait(driver, 2).until(
             EC.element_to_be_clickable(show_more)
         )
@@ -132,7 +161,7 @@ while True:
     #new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
 name_of_valute = "USD"
 
-# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
+elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
 list_buy = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(4)")
 list_buy = [val.text for val in list_buy]
 replace_comas(list_buy)
@@ -186,3 +215,4 @@ print("---------")
 
 
 driver.close()
+"""
