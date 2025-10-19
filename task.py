@@ -28,13 +28,13 @@ import matplotlib.dates as mdates
 # dict_elems1 = {"general" : ".tab_content .active table tbody", "valute_selector" :  "tr td:first-child", "sell_selector" : "tr td:nth-child(2)", "buy_selector" : "tr td:nth-child(3)"}
 # bisbank.combine("https://www.bisbank.com.ua/kurs-valyut/", dict_elems1)
 #
-# # print("------------------------")
+# # print("-------------------------")
 # #
 # money24 = Valute_to_price()
 # dict_elems = {"general" : ".map__courses-list", "valute_selector" :  ".currency-node-wrapper span", "sell_selector" : "li div:first-child", "buy_selector" : "li div:last-child"}
 # money24.combine("https://money24.com.ua/", dict_elems)
 #
-# print("------------------------")
+# print("-------------------------")
 #
 # privat_bank = Valute_to_price()
 # dict_elems2 = {"general" : ".content_xl80mCnkD4 div:last-child", "valute_selector" :  ".currency_b_C9i_wbMZ div.content_w73Ioj4XNI div:first-child", "sell_selector" : ".rate_kx9iSqCXBH:nth-child(4)", "buy_selector" : ".rate_kx9iSqCXBH:nth-child(2)"}
