@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
@@ -8,7 +7,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 import time
+import csv
 from matplotlib import pyplot
+import matplotlib.dates as mdates
 
 
 
@@ -92,20 +93,43 @@ class Dovnloaded_valutes():
         self.replace_comas(some_list)
         return some_list
 
+    def read_file(self, file_name):
+        valuta_and_date = set()
+        try:
+            with open(file_name, 'r', newline='') as bank:
+                reader = csv.reader(bank, delimiter=',')
+                header = next(reader)
+                valute_index_column = header.index('valute')
+                dates_index_column = header.index('date')
+                for row in reader:
+                    if row:
+                        valuta_and_date.add((row[valute_index_column], row[dates_index_column]))
+        except:
+            with open(file_name, 'w', newline='') as bank:
+                bank.write("valute,date,buy,sell\n")
+        # print(valuta_and_date)
+        return valuta_and_date
+
     def write_in_file(self, file_name):
-        with open(file_name, 'w') as bank:
-            bank.write("date,buy,sell\n")
-            for date, buy, sell in zip(self.list_dates, self.list_prices_to_buy, self.list_prices_to_sell):
-                bank.write(f"{date},{buy},{sell}\n")
+        valuta_and_dates = self.read_file(file_name)
+        with open(file_name, 'a') as bank:
+            for i in range(len(self.list_dates)):
+                new_pair = (self.name_of_valute, self.list_dates[i])
+                if new_pair not in valuta_and_dates:
+                    # list_to_append.append()
+                    bank.write(f"{self.name_of_valute},{self.list_dates[i]},{self.list_prices_to_buy[i]},{self.list_prices_to_sell[i]}\n")
+
+            # for date, buy, sell in zip(self.list_dates, self.list_prices_to_buy, self.list_prices_to_sell):
+            #     bank.write(f"{self.name_of_valute},{date},{buy},{sell}\n")
 
     def graphic(self):
         time_list_dates = [datetime.strptime(date, "%d-%m-%Y") for date in self.list_dates]
         gr_list_prices_to_sell = [float(price) for price in self.list_prices_to_sell]
         gr_list_prices_to_buy = [float(price) for price in self.list_prices_to_buy]
-        pyplot.plot(time_list_dates, gr_list_prices_to_sell, label="Sell USD", color = "green")
-        pyplot.plot(time_list_dates, gr_list_prices_to_buy, label="Buy USD", color = "red")
+        pyplot.plot(time_list_dates, gr_list_prices_to_sell, label=f"Sell {self.name_of_valute}", color = "green")
+        pyplot.plot(time_list_dates, gr_list_prices_to_buy, label=f"Buy {self.name_of_valute}", color = "red")
         pyplot.legend()
-        print(gr_list_prices_to_sell)
+        # print(gr_list_prices_to_sell)
         pyplot.show()
 
     def create(self, list_to_click, link_dictionary, file_name, show_more_link = None):
@@ -116,24 +140,120 @@ class Dovnloaded_valutes():
         self.list_prices_to_sell = self.create_list(link_dictionary, "link_sell")
         self.list_prices_to_buy = self.create_list(link_dictionary, "link_buy")
         self.write_in_file(file_name)
-        self.graphic()
+        #self.graphic()
 
 
 # TODO class All_valutes, which will create a graphic
 
 
+class Grafic_with_file:
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def grafic(self):
+        valuta_and_date = []
+        with open(self.file_name, 'r', newline='') as bank:
+            reader = csv.reader(bank, delimiter=',')
+            header = next(reader)
+            valute_index_column = header.index('valute')
+            dates_index_column = header.index('date')
+            buy_index_column = header.index('buy')
+            sell_index_column = header.index('sell')
+            for row in reader:
+                if row:
+                    valuta_and_date.append([row[valute_index_column], row[dates_index_column], row[buy_index_column], row[sell_index_column]])
+
+        dictionary_valut = {}
+        for item in valuta_and_date:
+            key = item[0]
+            if key not in dictionary_valut:
+                dictionary_valut[key] = []
+            dictionary_valut[key].append(item)
+
+
+        fig, axes = pyplot.subplots(nrows=2, ncols=1, figsize=(10, 8))
+
+        # Налаштування формату дати для обох осей
+        # Ми хочемо, щоб мітки були тільки на початку місяців
+        month_locator = mdates.MonthLocator(interval=1)
+        # Формат міток: скорочена назва місяця ('%b') та рік ('%Y')
+        month_formatter = mdates.DateFormatter('%b %Y')
+
+        # 1. Налаштовуємо вісь X для верхнього графіку (Купівля)
+        axes[0].xaxis.set_major_locator(month_locator)
+        axes[0].xaxis.set_major_formatter(month_formatter)
+
+        # 2. Налаштовуємо вісь X для нижнього графіку (Продаж)
+        axes[1].xaxis.set_major_locator(month_locator)
+        axes[1].xaxis.set_major_formatter(month_formatter)
+
+        for currency, data in dictionary_valut.items():
+            dates_str = []
+            buy_prices = []
+            sell_prices = []
+
+            for item in data:
+                dates_str.append(item[1])
+                buy_prices.append(float(item[2]))
+                sell_prices.append(float(item[3]))
+
+            dates_num = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str]
+
+            axes[0].plot(dates_num, buy_prices, label=f"Buy {currency}")
+            axes[1].plot(dates_num, sell_prices, label=f"Sell {currency}")
+
+            # Налаштування графіків
+
+        axes[0].set_title("Buy")
+        axes[0].set_xlabel("date")
+        axes[0].set_ylabel("prise")
+        axes[0].legend()
+        axes[0].tick_params(axis='x', rotation=45)  # Повертаємо дати для читабельності
+        # axes[0].grid(True)
+
+        axes[1].set_title("Sell")
+        axes[1].set_xlabel("date")
+        axes[1].set_ylabel("prise")
+        axes[1].legend()
+        axes[1].tick_params(axis='x', rotation=45)
+        # axes[1].grid(True)
+
+        pyplot.tight_layout()
+        pyplot.show()
 
 
 
 # driver = webdriver.Chrome()
 # driver.get("https://privatbank.ua/obmin-valiut")
 
-privat = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
+privat_usd = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
 list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
 link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-privat.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
+privat_usd.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
 
 
+print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+
+
+privat_eur = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "EUR")
+list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-2']"]
+link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
+privat_eur.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
+
+
+print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+
+#
+# privat_pl = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "PLN")
+# list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-3']"]
+# link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
+# privat_pl.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
+
+
+
+
+gr = Grafic_with_file("privat.csv")
+gr.grafic()
 
 
 
