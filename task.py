@@ -86,6 +86,7 @@ class Dovnloaded_valutes():
         for i in range(len(some_list)):
             some_list[i] = some_list[i].replace(',', '.')
 
+
     def create_list(self, link_dictionary, name_in_dict):
         elem = driver.find_element(By.CSS_SELECTOR, link_dictionary["general"])
         some_list = elem.find_elements(By.CSS_SELECTOR, link_dictionary[name_in_dict])
@@ -119,28 +120,16 @@ class Dovnloaded_valutes():
                     # list_to_append.append()
                     bank.write(f"{self.name_of_valute},{self.list_dates[i]},{self.list_prices_to_buy[i]},{self.list_prices_to_sell[i]}\n")
 
-            # for date, buy, sell in zip(self.list_dates, self.list_prices_to_buy, self.list_prices_to_sell):
-            #     bank.write(f"{self.name_of_valute},{date},{buy},{sell}\n")
-
-    def graphic(self):
-        time_list_dates = [datetime.strptime(date, "%d-%m-%Y") for date in self.list_dates]
-        gr_list_prices_to_sell = [float(price) for price in self.list_prices_to_sell]
-        gr_list_prices_to_buy = [float(price) for price in self.list_prices_to_buy]
-        pyplot.plot(time_list_dates, gr_list_prices_to_sell, label=f"Sell {self.name_of_valute}", color = "green")
-        pyplot.plot(time_list_dates, gr_list_prices_to_buy, label=f"Buy {self.name_of_valute}", color = "red")
-        pyplot.legend()
-        # print(gr_list_prices_to_sell)
-        pyplot.show()
 
     def create(self, list_to_click, link_dictionary, file_name, show_more_link = None):
         driver.get(self.driver_link)
         self.all_clicks(list_to_click)
         self.download_more(show_more_link)
         self.list_dates = self.create_list(link_dictionary, "link_date")
+        self.list_dates = [date.replace('.', '-') for date in self.list_dates]
         self.list_prices_to_sell = self.create_list(link_dictionary, "link_sell")
         self.list_prices_to_buy = self.create_list(link_dictionary, "link_buy")
         self.write_in_file(file_name)
-        #self.graphic()
 
 
 # TODO class All_valutes, which will create a graphic
@@ -197,6 +186,7 @@ class Grafic_with_file:
                 buy_prices.append(float(item[2]))
                 sell_prices.append(float(item[3]))
 
+
             dates_num = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str]
 
             axes[0].plot(dates_num, buy_prices, label=f"Buy {currency}")
@@ -222,43 +212,47 @@ class Grafic_with_file:
         pyplot.show()
 
 
-
-# driver = webdriver.Chrome()
-# driver.get("https://privatbank.ua/obmin-valiut")
-
-privat_usd = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
-list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
-link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-privat_usd.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
-
-
-print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-
-
-privat_eur = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "EUR")
-list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-2']"]
-link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-privat_eur.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
-
-
-print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-
-#
-# privat_pl = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "PLN")
-# list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-3']"]
+# privat_usd = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
+# list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
 # link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-# privat_pl.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
+# privat_usd.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
+#
+#
+# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+#
+#
+# privat_eur = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "EUR")
+# list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-2']"]
+# link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
+# privat_eur.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
+#
+# gr = Grafic_with_file("privat.csv")
+# gr.grafic()
+
+print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+
+meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
+list_to_click = []
+link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv")
+
+print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+
+meta_bank_eur = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR")
+list_to_click = []
+link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+meta_bank_eur.create(list_to_click, link_dictionary, "meta_bank.csv")
+
+meta_gr = Grafic_with_file("meta_bank.csv")
+meta_gr.grafic()
 
 
-
-
-gr = Grafic_with_file("privat.csv")
-gr.grafic()
-
-
-
-
-
+# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
+#
+# meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/150/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
+# list_to_click = []
+# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(3)", "link_buy" : "tr:not(:first-child) td:nth-child(4)"}
+# meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv", "div.download-more")
 
 
 driver.close()
