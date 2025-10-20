@@ -10,6 +10,7 @@ import time
 import csv
 from matplotlib import pyplot
 import matplotlib.dates as mdates
+from prophet import Prophet
 
 
 
@@ -139,7 +140,7 @@ class Grafic_with_file:
     def __init__(self, file_name):
         self.file_name = file_name
 
-    def grafic(self):
+    def data_for_grafic(self):
         valuta_and_date = []
         with open(self.file_name, 'r', newline='') as bank:
             reader = csv.reader(bank, delimiter=',')
@@ -159,6 +160,16 @@ class Grafic_with_file:
                 dictionary_valut[key] = []
             dictionary_valut[key].append(item)
 
+        return dictionary_valut
+
+
+    def graf(self, start_date_str, end_date_str):
+
+        dictionary_valut = self.data_for_grafic()
+
+        date_format = "%d-%m-%Y"
+        start_date = datetime.strptime(start_date_str, date_format)
+        end_date = datetime.strptime(end_date_str, date_format)
 
         fig, axes = pyplot.subplots(nrows=2, ncols=1, figsize=(10, 8))
 
@@ -176,15 +187,19 @@ class Grafic_with_file:
         axes[1].xaxis.set_major_locator(month_locator)
         axes[1].xaxis.set_major_formatter(month_formatter)
 
+
         for currency, data in dictionary_valut.items():
+            data.sort(key=lambda x: datetime.strptime(x[1], "%d-%m-%Y"))
             dates_str = []
             buy_prices = []
             sell_prices = []
 
             for item in data:
-                dates_str.append(item[1])
-                buy_prices.append(float(item[2]))
-                sell_prices.append(float(item[3]))
+                current_date = datetime.strptime(item[1], date_format)
+                if start_date <= current_date <= end_date:
+                    dates_str.append(item[1])
+                    buy_prices.append(float(item[2]))
+                    sell_prices.append(float(item[3]))
 
 
             dates_num = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str]
@@ -212,39 +227,80 @@ class Grafic_with_file:
         pyplot.show()
 
 
-# privat_usd = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "USD")
-# list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
-# link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-# privat_usd.create(list_to_click, link_dictionary, "privat.csv", "div.download-more")
+
+
+
+def enter_bank(bank_link, name_of_valute, list_to_click, link_dictionary, file_name, show_more_link = None):
+    bank_currency = Dovnloaded_valutes(bank_link, name_of_valute)
+    bank_currency.create(list_to_click, link_dictionary, file_name, show_more_link)
+
+def bank_graph(start_date, end_date, file_name):
+    gr = Grafic_with_file(file_name)
+    gr.graf(start_date, end_date)
+
+
+
+def menu():
+    while True:
+        print("What do you want to see: ")
+        print("1 - data of Privat bank")
+        print("2 - data of Meta bank")
+        print("To stop it print other number")
+        n = int(input())
+        if n == 1 or n == 2:
+            print("Period start (01-01-2025): ")
+            start_date = input()
+            print("Period end (01-01-2025): ")
+            end_date = input()
+
+        if n == 1:
+            list_to_click = ["//span[@plerdy-tracking-id='35644584901']",
+                             "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]",
+                             "//button[@plerdy-tracking-id='16681147801']"]
+            link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)",
+                               "link_sell": "tr td:nth-child(5)",
+                               "link_buy": "tr td:nth-child(4)"}
+            enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, "privat.csv", "div.download-more")
+
+            list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]","//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']","//*[@id='bs-select-2-2']"]
+            link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)",
+                               "link_sell": "tr td:nth-child(5)",
+                               "link_buy": "tr td:nth-child(4)"}
+            enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, "privat.csv",
+                       "div.download-more")
+            bank_graph(start_date, end_date, "privat.csv")
+
+        elif n == 2:
+            list_to_click = []
+            link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+            enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD", list_to_click, link_dictionary, "meta_bank.csv")
+
+            list_to_click = []
+            link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+            enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", list_to_click, link_dictionary, "meta_bank.csv")
+            bank_graph(start_date, end_date, "meta_bank.csv")
+
+        else:
+            return
+
+menu()
+
+# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
 #
+# meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
+# list_to_click = []
+# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+# meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv")
 #
 # print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
 #
+# meta_bank_eur = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR")
+# list_to_click = []
+# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
+# meta_bank_eur.create(list_to_click, link_dictionary, "meta_bank.csv")
 #
-# privat_eur = Dovnloaded_valutes("https://privatbank.ua/obmin-valiut", "EUR")
-# list_to_click1 = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']", "//*[@id='bs-select-2-2']"]
-# link_dictionary = {"general" : ".insert_table", "link_date" : "tr td:nth-child(1)", "link_sell" : "tr td:nth-child(5)", "link_buy" : "tr td:nth-child(4)"}
-# privat_eur.create(list_to_click1, link_dictionary, "privat.csv", "div.download-more")
-#
-# gr = Grafic_with_file("privat.csv")
-# gr.grafic()
-
-print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-
-meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
-list_to_click = []
-link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv")
-
-print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-
-meta_bank_eur = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR")
-list_to_click = []
-link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-meta_bank_eur.create(list_to_click, link_dictionary, "meta_bank.csv")
-
-meta_gr = Grafic_with_file("meta_bank.csv")
-meta_gr.grafic()
+# meta_gr = Grafic_with_file("meta_bank.csv")
+# meta_gr.graf()
 
 
 # print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
@@ -255,102 +311,4 @@ meta_gr.grafic()
 # meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv", "div.download-more")
 
 
-driver.close()
-
-
-###############################################
-"""
-wait = WebDriverWait(driver, 10)
-
-elem = driver.find_element(By.XPATH, "//span[@plerdy-tracking-id='35644584901']")
-driver.execute_script("arguments[0].click()", elem)
-elem = driver.find_element(By.XPATH, "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]")
-driver.execute_script("arguments[0].click()", elem)
-elem = driver.find_element(By.XPATH, "//button[@plerdy-tracking-id='16681147801']")
-driver.execute_script("arguments[0].click()", elem)
-
-show_more = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.download-more")))
-time.sleep(2)
-while True:
-    try:
-        button = WebDriverWait(driver, 2).until(
-            EC.element_to_be_clickable(show_more)
-        )
-        driver.execute_script("arguments[0].click()", button)
-        #     time.sleep(2)
-    except TimeoutException:
-        # The button was not found within the timeout, indicating it's gone
-        print("Button no longer found or not clickable within the timeout.")
-        break
-    except NoSuchElementException:
-        # The button is not present on the page
-        print("Button not found on the page.")
-        break
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        break
-# while len(new_dates) > len(dates):
-#     driver.execute_script("arguments[0].click()", show_more)
-#     time.sleep(2)
-#     dates = new_dates
-#     i += 1
-#     print(i)
-#     new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
-    #new_dates = elem.find_elements(By.CSS_SELECTOR, "tr")
-name_of_valute = "USD"
-
-elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
-list_buy = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(4)")
-list_buy = [val.text for val in list_buy]
-replace_comas(list_buy)
-
-# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
-list_sell = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(5)")
-list_sell = [val.text for val in list_sell]
-replace_comas(list_sell)
-
-# elem = driver.find_element(By.CSS_SELECTOR, ".insert_table")
-list_date = elem.find_elements(By.CSS_SELECTOR, "tr td:nth-child(1)")
-list_date = [val.text for val in list_date]
-replace_comas(list_date)
-
-with open ("privat.csv", 'w') as bank:
-    bank.write("date,buy,sell\n")
-    for date,buy,sell in zip(list_date, list_buy, list_sell):
-        bank.write(f"{date},{buy},{sell}\n")
-
-
-print(list_buy)
-print("--------------------------------------"*10)
-print(list_sell)
-print("--------------------------------------"*10)
-print(list_date)
-print("---------")
-#
-# list_buy = elem.find_elements(By.CSS_SELECTOR, ".module-exchange__item  div:nth-child(2) .module-exchange__item-text span")
-# list_buy = [val.text for val in list_buy]
-# print(list_buy)
-# print("---------")
-#
-# list_sell = elem.find_elements(By.CSS_SELECTOR, ".module-exchange__item  div:nth-child(4) .module-exchange__item-text span")
-# list_sell = [val.text for val in list_sell]
-# print(list_sell)
-# print("---------")
-#
-# driver.implicitly_wait(3)
-# elem = driver.find_element(By.XPATH, "/html/body/main/section[2]/div/div[1]/div/input")
-# print(elem)
-# elem.click()
-# elem2 = driver.find_element(By.XPATH, "/html/body/main/section[2]/div/div[1]/div/div/div/div[2]/div[10]")
-# elem2.click()
-#
-# elem = driver.find_element(By.CSS_SELECTOR, ".module-exchange__list")
-# list_valutes = elem.find_elements(By.CSS_SELECTOR, ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text")
-
-# elem = driver.find_element(By.NAME, "a")
-# elem.send_keys("pip")
-# elem.send_keys(Keys.RETURN)
-
-
-driver.close()
-"""
+# driver.close()
