@@ -308,7 +308,7 @@ def bank_graph(start_date, end_date, file_name, predict_days=0):
 def menu():
     print("Do you want to update the data?")
     print("1 - Yes (a little bit longer)")
-    print("somthing else if no")
+    print("something else if no")
     try:
         is_update = int(input())
     except:
@@ -320,7 +320,7 @@ def menu():
         print("2 - data of Meta bank (no forecast)")
         print("3 - data of Privat bank with forecast")
         print("4 - data of Meta bank with forecast")
-        print("To stop it print somthing else")
+        print("To stop it print something else")
         predict_days = 0
 
         try:
