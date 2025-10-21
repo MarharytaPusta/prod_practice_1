@@ -182,7 +182,7 @@ class Grafic_with_file:
 
     # -----------------------------------
 
-    def graf(self, start_date_str, end_date_str, predict_days=5):
+    def graf(self, start_date_str, end_date_str, predict_days=0):
         dictionary_valut = self.data_for_grafic()
 
         date_format = "%d-%m-%Y"
@@ -308,8 +308,12 @@ def bank_graph(start_date, end_date, file_name, predict_days=0):
 def menu():
     print("Do you want to update the data?")
     print("1 - Yes (a little bit longer)")
-    print("other number if no")
-    is_update = int(input())
+    print("somthing else if no")
+    try:
+        is_update = int(input())
+    except:
+        is_update = 0
+        pass
     while True:
         print("What do you want to see: ")
         print("1 - data of Privat bank (no forecast)")
@@ -317,6 +321,7 @@ def menu():
         print("3 - data of Privat bank with forecast")
         print("4 - data of Meta bank with forecast")
         print("To stop it print other number")
+        predict_days = 0
 
         try:
             n = int(input())
@@ -324,43 +329,60 @@ def menu():
             print("Invalid input. Please enter a number.")
             continue
 
-        predict_days = 0
-
+        if n == 1 or n == 3:
+            file_name = "privat.csv"
+        elif n == 2 or n == 4:
+            file_name = "meta_bank.csv"
 
         if is_update == 1:
             if n in [1, 3]:
                 list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
                 link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
-                enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, "privat.csv", "div.download-more")
+                enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, file_name, "div.download-more")
 
                 list_to_click.append("//button[@data-id='s-r_currency_by_table']")
                 list_to_click.append("//*[@id='bs-select-2-2']")
-                enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, "privat.csv","div.download-more")
+                enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, file_name,"div.download-more")
 
             elif n in [2, 4]:
                 link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
-                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/","USD", [], link_dictionary, "meta_bank.csv")
+                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/","USD", [], link_dictionary, file_name)
 
                 link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
-                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, "meta_bank.csv")
+                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, file_name)
 
         if n in [1, 2, 3, 4]:
-            # start_date = input("Period start (as DD-MM-YYYY): ")
-            # end_date = input("Period end (as DD-MM-YYYY): ")
-            start_date = "10-10-2024"
-            end_date = "21-10-2025"
+            date_format = "%d-%m-%Y"
+            while True:
+                start_date = input("Period start (as DD-MM-YYYY): ")
+                end_date = input("Period end (as DD-MM-YYYY): ")
+                # start_date = "10-10-2024"
+                # end_date = "21-10-2025"
+                try:
+                    datetime_object = datetime.strptime(start_date, date_format)
+                    datetime_object = datetime.strptime(end_date, date_format)
+                    break
+                except:
+                    print("You should use the 'DD-MM-YYYY' format")
 
             if n in [3, 4]:
-                # predict_days = int(input("Enter count of predict days:"))
-                predict_days = 100
+                while True:
+                    try:
+                        predict_days = int(input("Enter count of predict days: "))
+                        # predict_days = 100
+                        break
+                    except:
+                        print("You should enter integer")
 
-        if n == 1 or n == 3:
-            bank_graph(start_date, end_date, "privat.csv", predict_days)
-        elif n == 2 or n == 4:
-            bank_graph(start_date, end_date, "meta_bank.csv", predict_days)
-        else:
-            return
+        try:
+            if n == 1 or n == 3:
+                bank_graph(start_date, end_date, file_name, predict_days)
+            elif n == 2 or n == 4:
+                bank_graph(start_date, end_date, file_name, predict_days)
+            else:
+                return
+        except:
+            print("There is no data in file! Try to update it next time!")
 
 menu()
-
 driver.close()
