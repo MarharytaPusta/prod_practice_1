@@ -100,7 +100,6 @@ class Dovnloaded_valutes():
         self.write_in_file(file_name)
 
 
-# TODO class All_valutes, which will create a graphic
 
 
 class Grafic_with_file:
@@ -128,26 +127,54 @@ class Grafic_with_file:
             dictionary_valut[key].append(item)
 
         return dictionary_valut
-
-    def predict_currency_rate(self, dates_num, prices, num_days=30):
-        """Прогнозує ціни на наступні num_days за допомогою лінійної регресії."""
-        if len(dates_num) < 2:
+#cool
+    def predict_currency_rate(self, dates_num, prices, num_days=30, window=7, jump_factor=0.5):
+        """
+        Прогнозує ціни, комбінуючи базовий тренд MA та фіксовані випадкові "стрибки".
+        jump_factor (0.5 = 50% від максимальної історичної зміни) контролює розмір стрибків.
+        """
+        if len(dates_num) < window:
             return [], []
 
-        # Лінійна регресія: y = mx + c
-        # dates_num - це X, prices - це Y
-        # Ступінь 1 (пряма лінія)
-        slope, intercept = np.polyfit(dates_num, prices, 1)
+        # 1. Розрахунок базового рівня та кроку (Тренд MA)
+        last_ma = np.mean(prices[-window:])
+        prev_prices_segment = prices[-(window * 2):-window]
+        prev_ma = np.mean(prev_prices_segment) if len(prev_prices_segment) == window else last_ma
 
-        # Створення нових дат для прогнозу
+        # Базовий крок (тренд)
+        step = (last_ma - prev_ma) / window
+
+        # 2. Визначення діапазону для стрибка
+        price_diffs = np.diff(prices)
+        if len(price_diffs) > 0:
+            # Використовуємо максимальну абсолютну зміну як ліміт стрибка
+            max_daily_change = np.max(np.abs(price_diffs))
+        else:
+            max_daily_change = 0.5  # Запасний варіант
+
+        # Обмежуємо стрибок "фактором стрибка"
+        jump_limit = max_daily_change * jump_factor
+
+        # 3. Генерація нових дат
         last_date_num = dates_num[-1]
-        # Генеруємо нові числові дати для прогнозу (від наступного дня)
         predict_dates_num = np.arange(last_date_num + 1, last_date_num + 1 + num_days)
 
-        # Розрахунок прогнозованих цін
-        predicted_prices = slope * predict_dates_num + intercept
+        # 4. Прогнозування цін
+        predicted_prices = []
+        current_prediction = prices[-1]  # Починаємо прогноз з останньої фактичної ціни
 
-        return predict_dates_num, predicted_prices
+        for i in range(num_days):
+            # Генеруємо випадковий стрибок (число між -1 та 1)
+            random_jump_val = np.random.uniform(-1, 1)
+
+            # Фактична денна зміна = Базовий тренд + (Випадковий_стрибок * Ліміт_стрибка)
+            daily_change = step + (random_jump_val * jump_limit)
+
+            # Оновлюємо прогноз
+            current_prediction += daily_change
+            predicted_prices.append(current_prediction)
+
+        return predict_dates_num, np.array(predicted_prices)
 
     # -----------------------------------
 
@@ -185,11 +212,16 @@ class Grafic_with_file:
             dates_num_all = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str_all]
 
             # --- 1. Прогноз (виконується тільки якщо predict_days > 0) ---
+            # Використовуємо ковзне середнє за 7 днів для плавності
+            # Використовуємо Експоненціальне Згладжування
+
+            # --- 1. Прогноз (виконується тільки якщо predict_days > 0) ---
+            # Використовуємо модель Монте-Карло для випадкових хвилястих коливань.
             if predict_days > 0:
                 pred_dates_buy, pred_prices_buy = self.predict_currency_rate(dates_num_all, buy_prices_all,
-                                                                             predict_days)
+                                                                             predict_days, 7, 0.30)
                 pred_dates_sell, pred_prices_sell = self.predict_currency_rate(dates_num_all, sell_prices_all,
-                                                                               predict_days)
+                                                                               predict_days, 7, 0.30)
 
             # --- 2. Фільтрація історичних даних за діапазоном ---
             dates_num_plot = []
@@ -309,11 +341,14 @@ def menu():
                 enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, "meta_bank.csv")
 
         if n in [1, 2, 3, 4]:
-            start_date = input("Period start (as DD-MM-YYYY): ")
-            end_date = input("Period end (as DD-MM-YYYY): ")
+            # start_date = input("Period start (as DD-MM-YYYY): ")
+            # end_date = input("Period end (as DD-MM-YYYY): ")
+            start_date = "10-10-2024"
+            end_date = "21-10-2025"
 
             if n in [3, 4]:
-                predict_days = int(input("Enter count of predict days:"))
+                # predict_days = int(input("Enter count of predict days:"))
+                predict_days = 100
 
         if n == 1 or n == 3:
             bank_graph(start_date, end_date, "privat.csv", predict_days)
