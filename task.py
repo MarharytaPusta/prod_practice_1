@@ -10,42 +10,9 @@ import time
 import csv
 from matplotlib import pyplot
 import matplotlib.dates as mdates
-from prophet import Prophet
+import numpy as np
+from datetime import timedelta
 
-
-
-# Buy - гривні в долари. Я даю гривні, хочу отримати долари
-# Sell - долари в гривні. Я даю долари
-#
-# mm
-# # national_bank = Valute_to_price()
-# # dict_elems1 = {"general" : "#exchangeRates tbody", "valute_selector" :  "tr td:nth-child(2)", "sell_selector" : "tr td:nth-child(5)", "buy_selector" : "tr td:nth-child(5)"}
-# # national_bank.combine("https://bank.gov.ua/ua/markets/exchangerates", dict_elems1)
-# #
-# # print("------------------------")
-
-# bisbank = Valute_to_price()
-# # dict_elems1 = {"general" : ".module-exchange__list", "valute_selector" :  ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)", "sell_selector" : ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)", "buy_selector" : ".module-exchange__item .module-exchange__item-currency .module-exchange__item-text not(span)"}
-# dict_elems1 = {"general" : ".tab_content .active table tbody", "valute_selector" :  "tr td:first-child", "sell_selector" : "tr td:nth-child(2)", "buy_selector" : "tr td:nth-child(3)"}
-# bisbank.combine("https://www.bisbank.com.ua/kurs-valyut/", dict_elems1)
-#
-# # print("-------------------------")
-# #
-# money24 = Valute_to_price()
-# dict_elems = {"general" : ".map__courses-list", "valute_selector" :  ".currency-node-wrapper span", "sell_selector" : "li div:first-child", "buy_selector" : "li div:last-child"}
-# money24.combine("https://money24.com.ua/", dict_elems)
-#
-# print("-------------------------")
-#
-# privat_bank = Valute_to_price()
-# dict_elems2 = {"general" : ".content_xl80mCnkD4 div:last-child", "valute_selector" :  ".currency_b_C9i_wbMZ div.content_w73Ioj4XNI div:first-child", "sell_selector" : ".rate_kx9iSqCXBH:nth-child(4)", "buy_selector" : ".rate_kx9iSqCXBH:nth-child(2)"}
-# privat_bank.combine("https://next.privat24.ua/exchange-rates", dict_elems2)
-#
-# print("------------------------")
-#
-# globus_bank = Valute_to_price()
-# dict_elems4 = {"general" : ".scrolledTable tbody", "valute_selector" :  "tr:not(:first-child) td:first-child", "sell_selector" : "tr:not(:first-child) td:nth-child(2)", "buy_selector" : "tr:not(:first-child) td:nth-child(3)"}
-# globus_bank.combine("https://globusbank.com.ua/ua/kursy-valiut.html", dict_elems4)
 
 driver = webdriver.Chrome()
 
@@ -162,66 +129,129 @@ class Grafic_with_file:
 
         return dictionary_valut
 
+    def predict_currency_rate(self, dates_num, prices, num_days=30):
+        """Прогнозує ціни на наступні num_days за допомогою лінійної регресії."""
+        if len(dates_num) < 2:
+            return [], []
 
-    def graf(self, start_date_str, end_date_str):
+        # Лінійна регресія: y = mx + c
+        # dates_num - це X, prices - це Y
+        # Ступінь 1 (пряма лінія)
+        slope, intercept = np.polyfit(dates_num, prices, 1)
 
+        # Створення нових дат для прогнозу
+        last_date_num = dates_num[-1]
+        # Генеруємо нові числові дати для прогнозу (від наступного дня)
+        predict_dates_num = np.arange(last_date_num + 1, last_date_num + 1 + num_days)
+
+        # Розрахунок прогнозованих цін
+        predicted_prices = slope * predict_dates_num + intercept
+
+        return predict_dates_num, predicted_prices
+
+    # -----------------------------------
+
+    def graf(self, start_date_str, end_date_str, predict_days=5):
         dictionary_valut = self.data_for_grafic()
 
         date_format = "%d-%m-%Y"
         start_date = datetime.strptime(start_date_str, date_format)
         end_date = datetime.strptime(end_date_str, date_format)
 
+        # Збільшуємо кінцеву дату графіку, ТІЛЬКИ якщо є прогноз
+        if predict_days > 0:
+            final_end_date = end_date + timedelta(days=predict_days)
+        else:
+            final_end_date = end_date
+
         fig, axes = pyplot.subplots(nrows=2, ncols=1, figsize=(10, 8))
 
         # Налаштування формату дати для обох осей
-        # Ми хочемо, щоб мітки були тільки на початку місяців
         month_locator = mdates.MonthLocator(interval=1)
-        # Формат міток: скорочена назва місяця ('%b') та рік ('%Y')
         month_formatter = mdates.DateFormatter('%b %Y')
 
-        # 1. Налаштовуємо вісь X для верхнього графіку (Купівля)
         axes[0].xaxis.set_major_locator(month_locator)
         axes[0].xaxis.set_major_formatter(month_formatter)
 
-        # 2. Налаштовуємо вісь X для нижнього графіку (Продаж)
         axes[1].xaxis.set_major_locator(month_locator)
         axes[1].xaxis.set_major_formatter(month_formatter)
 
-
         for currency, data in dictionary_valut.items():
             data.sort(key=lambda x: datetime.strptime(x[1], "%d-%m-%Y"))
-            dates_str = []
-            buy_prices = []
-            sell_prices = []
+            dates_str_all = [item[1] for item in data]
+            buy_prices_all = [float(item[2]) for item in data]
+            sell_prices_all = [float(item[3]) for item in data]
 
-            for item in data:
+            dates_num_all = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str_all]
+
+            # --- 1. Прогноз (виконується тільки якщо predict_days > 0) ---
+            if predict_days > 0:
+                pred_dates_buy, pred_prices_buy = self.predict_currency_rate(dates_num_all, buy_prices_all,
+                                                                             predict_days)
+                pred_dates_sell, pred_prices_sell = self.predict_currency_rate(dates_num_all, sell_prices_all,
+                                                                               predict_days)
+
+            # --- 2. Фільтрація історичних даних за діапазоном ---
+            dates_num_plot = []
+            buy_prices_plot = []
+            sell_prices_plot = []
+
+            # Фільтруємо лише дані для відображення в заданому користувачем діапазоні
+            for i, item in enumerate(data):
                 current_date = datetime.strptime(item[1], date_format)
                 if start_date <= current_date <= end_date:
-                    dates_str.append(item[1])
-                    buy_prices.append(float(item[2]))
-                    sell_prices.append(float(item[3]))
+                    dates_num_plot.append(dates_num_all[i])
+                    buy_prices_plot.append(buy_prices_all[i])
+                    sell_prices_plot.append(sell_prices_all[i])
 
+            # --- 3. Побудова графіків ---
 
-            dates_num = [mdates.date2num(datetime.strptime(d, "%d-%m-%Y")) for d in dates_str]
+            # Історичні дані (товста лінія)
+            # ВАЖЛИВО: використовуємо dates_num_plot/buy_prices_plot для відображення ЛИШЕ вибраного періоду.
+            axes[0].plot(dates_num_plot, buy_prices_plot, label=f"Buy {currency}", linewidth=2)
+            axes[1].plot(dates_num_plot, sell_prices_plot, label=f"Sell {currency}", linewidth=2)
 
-            axes[0].plot(dates_num, buy_prices, label=f"Buy {currency}")
-            axes[1].plot(dates_num, sell_prices, label=f"Sell {currency}")
+            # --- 4. Побудова прогнозу (ТІЛЬКИ якщо predict_days > 0) ---
+            if predict_days > 0 and dates_num_plot:
+                last_color = axes[0].lines[-1].get_color()  # Беремо колір історичної лінії
 
-            # Налаштування графіків
+                # Купівля: З'єднання останньої історичної точки + лінія прогнозу
+                axes[0].plot([dates_num_plot[-1], pred_dates_buy[0]],
+                             [buy_prices_plot[-1], pred_prices_buy[0]],
+                             linestyle='--', color=last_color, linewidth=1)
+                axes[0].plot(pred_dates_buy, pred_prices_buy,
+                             label=f"Buy {currency} (Forecast)",
+                             linestyle='--', color=last_color, linewidth=1)
 
-        axes[0].set_title("Buy")
-        axes[0].set_xlabel("date")
-        axes[0].set_ylabel("prise")
+                # Продаж: З'єднання останньої історичної точки + лінія прогнозу
+                axes[1].plot([dates_num_plot[-1], pred_dates_sell[0]],
+                             [sell_prices_plot[-1], pred_prices_sell[0]],
+                             linestyle='--', color=last_color, linewidth=1)
+                axes[1].plot(pred_dates_sell, pred_prices_sell,
+                             label=f"Sell {currency} (Forecast)",
+                             linestyle='--', color=last_color, linewidth=1)
+
+        # Налаштування осей
+        if dates_num_plot:
+            min_x = mdates.date2num(start_date)
+            max_x = mdates.date2num(final_end_date)
+            axes[0].set_xlim(min_x, max_x)
+            axes[1].set_xlim(min_x, max_x)
+
+        # Налаштування заголовків
+        pred_str = f" & {predict_days}-Day Forecast" if predict_days > 0 else ''
+
+        axes[0].set_title(f"Buy Rate (History{pred_str})")
+        axes[0].set_xlabel("Date")
+        axes[0].set_ylabel("Price")
         axes[0].legend()
-        axes[0].tick_params(axis='x', rotation=45)  # Повертаємо дати для читабельності
-        # axes[0].grid(True)
+        axes[0].tick_params(axis='x', rotation=45)
 
-        axes[1].set_title("Sell")
-        axes[1].set_xlabel("date")
-        axes[1].set_ylabel("prise")
+        axes[1].set_title(f"Sell Rate (History{pred_str})")
+        axes[1].set_xlabel("Date")
+        axes[1].set_ylabel("Price")
         axes[1].legend()
         axes[1].tick_params(axis='x', rotation=45)
-        # axes[1].grid(True)
 
         pyplot.tight_layout()
         pyplot.show()
@@ -234,81 +264,64 @@ def enter_bank(bank_link, name_of_valute, list_to_click, link_dictionary, file_n
     bank_currency = Dovnloaded_valutes(bank_link, name_of_valute)
     bank_currency.create(list_to_click, link_dictionary, file_name, show_more_link)
 
-def bank_graph(start_date, end_date, file_name):
+def bank_graph(start_date, end_date, file_name, predict_days=0):
     gr = Grafic_with_file(file_name)
-    gr.graf(start_date, end_date)
-
+    gr.graf(start_date, end_date, predict_days)
 
 
 def menu():
+    print("Do you want to update the data?")
+    print("1 - Yes (a little bit longer)")
+    print("somthing else if no")
+    is_update = input()
     while True:
         print("What do you want to see: ")
-        print("1 - data of Privat bank")
-        print("2 - data of Meta bank")
+        print("1 - data of Privat bank (no forecast)")
+        print("2 - data of Meta bank (no forecast)")
+        print("3 - data of Privat bank with forecast)")
+        print("4 - data of Meta bank with forecast)")
         print("To stop it print other number")
-        n = int(input())
-        if n == 1 or n == 2:
-            print("Period start (01-01-2025): ")
-            start_date = input()
-            print("Period end (01-01-2025): ")
-            end_date = input()
 
-        if n == 1:
-            list_to_click = ["//span[@plerdy-tracking-id='35644584901']",
-                             "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]",
-                             "//button[@plerdy-tracking-id='16681147801']"]
-            link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)",
-                               "link_sell": "tr td:nth-child(5)",
-                               "link_buy": "tr td:nth-child(4)"}
-            enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, "privat.csv", "div.download-more")
+        try:
+            n = int(input())
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+            continue
 
-            list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]","//button[@plerdy-tracking-id='16681147801']", "//button[@data-id='s-r_currency_by_table']","//*[@id='bs-select-2-2']"]
-            link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)",
-                               "link_sell": "tr td:nth-child(5)",
-                               "link_buy": "tr td:nth-child(4)"}
-            enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, "privat.csv",
-                       "div.download-more")
-            bank_graph(start_date, end_date, "privat.csv")
+        predict_days = 0
 
-        elif n == 2:
-            list_to_click = []
-            link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-            enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD", list_to_click, link_dictionary, "meta_bank.csv")
 
-            list_to_click = []
-            link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-            enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", list_to_click, link_dictionary, "meta_bank.csv")
-            bank_graph(start_date, end_date, "meta_bank.csv")
+        if (is_update == 1):
+            if n in [1, 3]:
+                list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
+                link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
+                enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, "privat.csv", "div.download-more")
 
+                list_to_click.append("//button[@data-id='s-r_currency_by_table']")
+                list_to_click.append("//*[@id='bs-select-2-2']")
+                enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, "privat.csv","div.download-more")
+
+            elif n in [2, 4]:
+                link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
+                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/","USD", [], link_dictionary, "meta_bank.csv")
+
+                link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
+                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, "meta_bank.csv")
+
+        if n in [1, 2, 3, 4]:
+            start_date = input("Period start (as DD-MM-YYYY): ")
+            end_date = input("Period end (as DD-MM-YYYY): ")
+
+            if n in [3, 4]:
+                predict_days = int(input("Enter count of predict days:"))
+
+        if n == 1 or n == 3:
+            bank_graph(start_date, end_date, "privat.csv", predict_days)
+        elif n == 2 or n == 4:
+            bank_graph(start_date, end_date, "meta_bank.csv", predict_days)
         else:
             return
 
 menu()
 
-# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-#
-# meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
-# list_to_click = []
-# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-# meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv")
-#
-# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-#
-# meta_bank_eur = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR")
-# list_to_click = []
-# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(4)", "link_buy" : "tr:not(:first-child) td:nth-child(3)"}
-# meta_bank_eur.create(list_to_click, link_dictionary, "meta_bank.csv")
-#
-# meta_gr = Grafic_with_file("meta_bank.csv")
-# meta_gr.graf()
-
-
-# print("---------------------------------------------------------------------------------------555543333333333333333333333333322222222222222222222222222277777777777")
-#
-# meta_bank_usd = Dovnloaded_valutes("https://www.mbank.com.ua/content/view/41/51/150/150/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/", "USD")
-# list_to_click = []
-# link_dictionary = {"general" : ".editor_table tbody", "link_date" : "tr:not(:first-child) td:first-child", "link_sell" : "tr:not(:first-child) td:nth-child(3)", "link_buy" : "tr:not(:first-child) td:nth-child(4)"}
-# meta_bank_usd.create(list_to_click, link_dictionary, "meta_bank.csv", "div.download-more")
-
-
-# driver.close()
+driver.close()
