@@ -12,8 +12,12 @@ from matplotlib import pyplot
 import matplotlib.dates as mdates
 import numpy as np
 from datetime import timedelta
+from selenium.webdriver.chrome.options import Options
 
-
+# options = Options()
+# options.add_argument("--headless=new")
+# options.add_argument("--window-size=1920,1080")
+# driver = webdriver.Chrome(options=options)
 driver = webdriver.Chrome()
 
 class Dovnloaded_valutes():
@@ -304,14 +308,14 @@ def bank_graph(start_date, end_date, file_name, predict_days=0):
 def menu():
     print("Do you want to update the data?")
     print("1 - Yes (a little bit longer)")
-    print("somthing else if no")
-    is_update = input()
+    print("other number if no")
+    is_update = int(input())
     while True:
         print("What do you want to see: ")
         print("1 - data of Privat bank (no forecast)")
         print("2 - data of Meta bank (no forecast)")
-        print("3 - data of Privat bank with forecast)")
-        print("4 - data of Meta bank with forecast)")
+        print("3 - data of Privat bank with forecast")
+        print("4 - data of Meta bank with forecast")
         print("To stop it print other number")
 
         try:
@@ -323,7 +327,7 @@ def menu():
         predict_days = 0
 
 
-        if (is_update == 1):
+        if is_update == 1:
             if n in [1, 3]:
                 list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
                 link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
