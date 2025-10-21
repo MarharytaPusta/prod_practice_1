@@ -20,10 +20,10 @@ from selenium.webdriver.chrome.options import Options
 # driver = webdriver.Chrome(options=options)
 driver = webdriver.Chrome()
 
-class Dovnloaded_valutes():
-    def __init__(self, driver_link, name_of_valute, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
+class DovnloadedСurrency():
+    def __init__(self, driver_link, name_of_currency, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
         self.driver_link = driver_link
-        self.name_of_valute = name_of_valute
+        self.name_of_currency = name_of_currency
         self.list_prices_to_sell = list_prices_to_sell
         self.list_prices_to_buy = list_prices_to_buy
         self.list_dates = list_dates
@@ -45,13 +45,13 @@ class Dovnloaded_valutes():
                     driver.execute_script("arguments[0].click()", button)
                     time.sleep(2)
                 except TimeoutException:
-                    print("Button no longer found or not clickable within the timeout")
+                    # print("Button no longer found or not clickable within the timeout")
                     break
                 except NoSuchElementException:
-                    print("Button not found on the page")
+                    # print("Button not found on the page")
                     break
                 except Exception:
-                    print("An unexpected error occurred")
+                    # print("An unexpected error occurred")
                     break
 
     def replace_comas(self, some_list):
@@ -67,30 +67,30 @@ class Dovnloaded_valutes():
         return some_list
 
     def read_file(self, file_name):
-        valuta_and_date = set()
+        currency_and_date = set()
         try:
             with open(file_name, 'r', newline='') as bank:
                 reader = csv.reader(bank, delimiter=',')
                 header = next(reader)
-                valute_index_column = header.index('valute')
+                currency_index_column = header.index('currency')
                 dates_index_column = header.index('date')
                 for row in reader:
                     if row:
-                        valuta_and_date.add((row[valute_index_column], row[dates_index_column]))
+                        currency_and_date.add((row[currency_index_column], row[dates_index_column]))
         except:
             with open(file_name, 'w', newline='') as bank:
-                bank.write("valute,date,buy,sell\n")
-        # print(valuta_and_date)
-        return valuta_and_date
+                bank.write("currency,date,buy,sell\n")
+        # print(currency_and_date)
+        return currency_and_date
 
     def write_in_file(self, file_name):
-        valuta_and_dates = self.read_file(file_name)
+        currency_and_dates = self.read_file(file_name)
         with open(file_name, 'a') as bank:
             for i in range(len(self.list_dates)):
-                new_pair = (self.name_of_valute, self.list_dates[i])
-                if new_pair not in valuta_and_dates:
+                new_pair = (self.name_of_currency, self.list_dates[i])
+                if new_pair not in currency_and_dates:
                     # list_to_append.append()
-                    bank.write(f"{self.name_of_valute},{self.list_dates[i]},{self.list_prices_to_buy[i]},{self.list_prices_to_sell[i]}\n")
+                    bank.write(f"{self.name_of_currency},{self.list_dates[i]},{self.list_prices_to_buy[i]},{self.list_prices_to_sell[i]}\n")
 
 
     def create(self, list_to_click, link_dictionary, file_name, show_more_link = None):
@@ -111,26 +111,26 @@ class Grafic_with_file:
         self.file_name = file_name
 
     def data_for_grafic(self):
-        valuta_and_date = []
+        currency_and_date = []
         with open(self.file_name, 'r', newline='') as bank:
             reader = csv.reader(bank, delimiter=',')
             header = next(reader)
-            valute_index_column = header.index('valute')
+            currency_index_column = header.index('currency')
             dates_index_column = header.index('date')
             buy_index_column = header.index('buy')
             sell_index_column = header.index('sell')
             for row in reader:
                 if row:
-                    valuta_and_date.append([row[valute_index_column], row[dates_index_column], row[buy_index_column], row[sell_index_column]])
+                    currency_and_date.append([row[currency_index_column], row[dates_index_column], row[buy_index_column], row[sell_index_column]])
 
-        dictionary_valut = {}
-        for item in valuta_and_date:
+        dictionary_currency = {}
+        for item in currency_and_date:
             key = item[0]
-            if key not in dictionary_valut:
-                dictionary_valut[key] = []
-            dictionary_valut[key].append(item)
+            if key not in dictionary_currency:
+                dictionary_currency[key] = []
+            dictionary_currency[key].append(item)
 
-        return dictionary_valut
+        return dictionary_currency
 #cool
     def predict_currency_rate(self, dates_num, prices, num_days=30, window=7, jump_factor=0.5):
         """
@@ -183,7 +183,7 @@ class Grafic_with_file:
     # -----------------------------------
 
     def graf(self, start_date_str, end_date_str, predict_days=0):
-        dictionary_valut = self.data_for_grafic()
+        dictionary_currency = self.data_for_grafic()
 
         date_format = "%d-%m-%Y"
         start_date = datetime.strptime(start_date_str, date_format)
@@ -207,7 +207,7 @@ class Grafic_with_file:
         axes[1].xaxis.set_major_locator(month_locator)
         axes[1].xaxis.set_major_formatter(month_formatter)
 
-        for currency, data in dictionary_valut.items():
+        for currency, data in dictionary_currency.items():
             data.sort(key=lambda x: datetime.strptime(x[1], "%d-%m-%Y"))
             dates_str_all = [item[1] for item in data]
             buy_prices_all = [float(item[2]) for item in data]
@@ -296,8 +296,8 @@ class Grafic_with_file:
 
 
 
-def enter_bank(bank_link, name_of_valute, list_to_click, link_dictionary, file_name, show_more_link = None):
-    bank_currency = Dovnloaded_valutes(bank_link, name_of_valute)
+def enter_bank(bank_link, name_of_currency, list_to_click, link_dictionary, file_name, show_more_link = None):
+    bank_currency = DovnloadedСurrency(bank_link, name_of_currency)
     bank_currency.create(list_to_click, link_dictionary, file_name, show_more_link)
 
 def bank_graph(start_date, end_date, file_name, predict_days=0):
@@ -335,12 +335,12 @@ def menu():
 
         if is_update == 1:
             if n in [1, 3]:
-                list_to_click = ["//span[@plerdy-tracking-id='35644584901']", "/html/body/div[5]/article[2]/div[3]/article/div[1]/div/div/div/div[2]", "//button[@plerdy-tracking-id='16681147801']"]
+                list_to_click = ["//*[@id='archive-block']", "//*[@id='table-currency']", "//*[@id='one_year_by_table']"]
                 link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
                 enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, file_name, "div.download-more")
 
-                list_to_click.append("//button[@data-id='s-r_currency_by_table']")
-                list_to_click.append("//*[@id='bs-select-2-2']")
+                list_to_click.append("//*[@id='mainWrapArchive']/div[2]/article/div/div[1]/div[3]/div/button/div")
+                list_to_click.append("//*[@id='bs-select-1-2']")
                 enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, file_name,"div.download-more")
 
             elif n in [2, 4]:
@@ -357,6 +357,9 @@ def menu():
                 end_date = input("Period end (as DD-MM-YYYY): ")
                 # start_date = "10-10-2024"
                 # end_date = "21-10-2025"
+                if datetime.strptime(start_date, "%d-%m-%Y") == datetime.strptime(end_date, "%d-%m-%Y"):
+                    print("It is the same dates")
+                    continue
                 try:
                     datetime_object = datetime.strptime(start_date, date_format)
                     datetime_object = datetime.strptime(end_date, date_format)
@@ -372,6 +375,10 @@ def menu():
                         break
                     except:
                         print("You should enter integer")
+
+            if datetime.strptime(start_date, "%d-%m-%Y") > datetime.strptime(end_date, "%d-%m-%Y"):
+                start_date, end_date = end_date, start_date
+
 
         try:
             if n == 1 or n == 3:
