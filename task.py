@@ -320,14 +320,13 @@ def menu():
         print("2 - data of Meta bank (no forecast)")
         print("3 - data of Privat bank with forecast")
         print("4 - data of Meta bank with forecast")
-        print("To stop it print other number")
+        print("To stop it print somthing else")
         predict_days = 0
 
         try:
             n = int(input())
-        except ValueError:
-            print("Invalid input. Please enter a number.")
-            continue
+        except:
+            return
 
         if n == 1 or n == 3:
             file_name = "privat.csv"
