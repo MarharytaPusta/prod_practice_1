@@ -14,11 +14,11 @@ import numpy as np
 from datetime import timedelta
 from selenium.webdriver.chrome.options import Options
 
-# options = Options()
-# options.add_argument("--headless=new")
-# options.add_argument("--window-size=1920,1080")
-# driver = webdriver.Chrome(options=options)
-driver = webdriver.Chrome()
+options = Options()
+options.add_argument("--headless=new")
+options.add_argument("--window-size=1920,1080")
+driver = webdriver.Chrome(options=options)
+# driver = webdriver.Chrome()
 
 class DovnloadedСurrency():
     def __init__(self, driver_link, name_of_currency, list_prices_to_sell = None, list_prices_to_buy = None, list_dates = None):
@@ -45,13 +45,10 @@ class DovnloadedСurrency():
                     driver.execute_script("arguments[0].click()", button)
                     time.sleep(2)
                 except TimeoutException:
-                    # print("Button no longer found or not clickable within the timeout")
                     break
                 except NoSuchElementException:
-                    # print("Button not found on the page")
                     break
                 except Exception:
-                    # print("An unexpected error occurred")
                     break
 
     def replace_comas(self, some_list):
@@ -80,7 +77,6 @@ class DovnloadedСurrency():
         except:
             with open(file_name, 'w', newline='') as bank:
                 bank.write("currency,date,buy,sell\n")
-        # print(currency_and_date)
         return currency_and_date
 
     def write_in_file(self, file_name):
@@ -89,7 +85,6 @@ class DovnloadedСurrency():
             for i in range(len(self.list_dates)):
                 new_pair = (self.name_of_currency, self.list_dates[i])
                 if new_pair not in currency_and_dates:
-                    # list_to_append.append()
                     bank.write(f"{self.name_of_currency},{self.list_dates[i]},{self.list_prices_to_buy[i]},{self.list_prices_to_sell[i]}\n")
 
 
@@ -131,7 +126,7 @@ class Grafic_with_file:
             dictionary_currency[key].append(item)
 
         return dictionary_currency
-#cool
+
     def predict_currency_rate(self, dates_num, prices, num_days=30, window=7, jump_factor=0.5):
         """
         Прогнозує ціни, комбінуючи базовий тренд MA та фіксовані випадкові "стрибки".
@@ -189,7 +184,6 @@ class Grafic_with_file:
         start_date = datetime.strptime(start_date_str, date_format)
         end_date = datetime.strptime(end_date_str, date_format)
 
-        # Збільшуємо кінцеву дату графіку, ТІЛЬКИ якщо є прогноз
         if predict_days > 0:
             final_end_date = end_date + timedelta(days=predict_days)
         else:
@@ -274,7 +268,6 @@ class Grafic_with_file:
             axes[0].set_xlim(min_x, max_x)
             axes[1].set_xlim(min_x, max_x)
 
-        # Налаштування заголовків
         pred_str = f" & {predict_days}-Day Forecast" if predict_days > 0 else ''
 
         axes[0].set_title(f"Buy Rate (History{pred_str})")
@@ -332,52 +325,53 @@ def menu():
             file_name = "privat.csv"
         elif n == 2 or n == 4:
             file_name = "meta_bank.csv"
+        try:
+            if is_update == 1:
+                if n in [1, 3]:
+                    list_to_click = ["//*[@id='archive-block']", "//*[@id='table-currency']", "//*[@id='one_year_by_table']"]
+                    link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
+                    enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, file_name, "div.download-more")
 
-        if is_update == 1:
-            if n in [1, 3]:
-                list_to_click = ["//*[@id='archive-block']", "//*[@id='table-currency']", "//*[@id='one_year_by_table']"]
-                link_dictionary = {"general": ".insert_table", "link_date": "tr td:nth-child(1)", "link_sell": "tr td:nth-child(5)", "link_buy": "tr td:nth-child(4)"}
-                enter_bank("https://privatbank.ua/obmin-valiut", "USD", list_to_click, link_dictionary, file_name, "div.download-more")
+                    list_to_click.append("//*[@id='mainWrapArchive']/div[2]/article/div/div[1]/div[3]/div/button/div")
+                    list_to_click.append("//*[@id='bs-select-1-2']")
+                    enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, file_name,"div.download-more")
 
-                list_to_click.append("//*[@id='mainWrapArchive']/div[2]/article/div/div[1]/div[3]/div/button/div")
-                list_to_click.append("//*[@id='bs-select-1-2']")
-                enter_bank("https://privatbank.ua/obmin-valiut", "EUR", list_to_click, link_dictionary, file_name,"div.download-more")
+                elif n in [2, 4]:
+                    link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
+                    enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/","USD", [], link_dictionary, file_name)
 
-            elif n in [2, 4]:
-                link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
-                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,1/lang,uk/","USD", [], link_dictionary, file_name)
-
-                link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
-                enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, file_name)
+                    link_dictionary = {"general": ".editor_table tbody", "link_date": "tr:not(:first-child) td:first-child", "link_sell": "tr:not(:first-child) td:nth-child(4)", "link_buy": "tr:not(:first-child) td:nth-child(3)"}
+                    enter_bank("https://www.mbank.com.ua/content/view/41/51/150/0/lang,uk/waHiddenStatus_Filter_frontGridForm_wa_rate_currency_ident,3/", "EUR", [], link_dictionary, file_name)
+        except:
+            print("Something went wrong with the website, so we use the downloaded data")
 
         if n in [1, 2, 3, 4]:
             date_format = "%d-%m-%Y"
             while True:
                 start_date = input("Period start (as DD-MM-YYYY): ")
                 end_date = input("Period end (as DD-MM-YYYY): ")
-                # start_date = "10-10-2024"
-                # end_date = "21-10-2025"
-                if datetime.strptime(start_date, "%d-%m-%Y") == datetime.strptime(end_date, "%d-%m-%Y"):
-                    print("It is the same dates")
-                    continue
                 try:
-                    datetime_object = datetime.strptime(start_date, date_format)
-                    datetime_object = datetime.strptime(end_date, date_format)
+                    datetime_object_start = datetime.strptime(start_date, date_format)
+                    datetime_object_end = datetime.strptime(end_date, date_format)
+                    if datetime_object_start == datetime_object_end:
+                        print("It is the same dates")
+                        continue
                     break
                 except:
                     print("You should use the 'DD-MM-YYYY' format")
+                    continue
+
+
+            if datetime.strptime(start_date, "%d-%m-%Y") > datetime.strptime(end_date, "%d-%m-%Y"):
+                start_date, end_date = end_date, start_date
 
             if n in [3, 4]:
                 while True:
                     try:
                         predict_days = int(input("Enter count of predict days: "))
-                        # predict_days = 100
                         break
                     except:
                         print("You should enter integer")
-
-            if datetime.strptime(start_date, "%d-%m-%Y") > datetime.strptime(end_date, "%d-%m-%Y"):
-                start_date, end_date = end_date, start_date
 
 
         try:
@@ -389,6 +383,11 @@ def menu():
                 return
         except:
             print("There is no data in file! Try to update it next time!")
+
+        print("---------------------------------------------------")
+        print("Your graph is ready")
+        print("---------------------------------------------------")
+
 
 menu()
 driver.close()
